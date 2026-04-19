@@ -1,6 +1,6 @@
-package downloader.domain
+package downloader.application.interfaces
 
-import downloader.application.interfaces.ChunkGateway
+import downloader.domain.DownloadPlan
 
 /**
  * Responsible for downloading chunks in parallel.
@@ -37,6 +37,3 @@ interface ParallelChunkDownloader {
         chunkStorage: ChunkStorage
     )
 }
-
-
-

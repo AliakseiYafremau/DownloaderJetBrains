@@ -2,9 +2,9 @@ package downloader.application.usecase
 
 import downloader.application.interfaces.ChunkGateway
 import downloader.domain.ChunkPlanner
-import downloader.domain.ChunkStorage
+import downloader.application.interfaces.ChunkStorage
 import downloader.domain.DownloadConfig
-import downloader.domain.ParallelChunkDownloader
+import downloader.application.interfaces.ParallelChunkDownloader
 
 class DownloadFileUseCase(
     val chunkGateway: ChunkGateway,
