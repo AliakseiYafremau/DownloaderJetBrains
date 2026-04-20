@@ -6,6 +6,7 @@ import downloader.application.interfaces.ParallelChunkDownloader
 import downloader.domain.DownloadPlan
 import java.util.concurrent.Callable
 import java.util.concurrent.CompletionService
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
 
@@ -18,7 +19,9 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
         chunkGateway: ChunkGateway,
         chunkStorage: ChunkStorage,
     ) {
-        require(maxParallel > 0) { "maxParallel must be > 0" }
+        if (maxParallel <= 0) {
+            throw AdapterException("maxParallel must be > 0")
+        }
 
         if (plan.chunks.isEmpty()) {
             return
@@ -51,12 +54,21 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
     }
 
     private fun unwrapExecutionException(exception: Exception): RuntimeException {
-        val cause = exception.cause
-        return when (cause) {
-            is RuntimeException -> cause
-            is Error -> throw cause
-            null -> RuntimeException(exception)
-            else -> RuntimeException(cause)
+        return when (exception) {
+            is InterruptedException -> {
+                Thread.currentThread().interrupt()
+                AdapterException("Parallel download interrupted", exception)
+            }
+
+            is ExecutionException -> {
+                val cause = exception.cause ?: exception
+                if (cause is Error) {
+                    throw cause
+                }
+                AdapterException("Parallel chunk download failed", cause)
+            }
+
+            else -> AdapterException("Parallel chunk download failed", exception)
         }
     }
 }

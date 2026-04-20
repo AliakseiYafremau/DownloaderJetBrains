@@ -27,17 +27,19 @@ class HttpChunkGateway(
             .build()
 
         val response = execute(request, HttpResponse.BodyHandlers.discarding())
-        require(response.statusCode() in 200..299) {
-            "HEAD request failed with status ${response.statusCode()}"
+        if (response.statusCode() !in 200..299) {
+            throw AdapterException("HEAD request failed with status ${response.statusCode()}")
         }
 
         val contentLength = response.headers()
             .firstValue("Content-Length")
-            .orElseThrow { IllegalStateException("Missing Content-Length header") }
+            .orElseThrow { AdapterException("Missing Content-Length header") }
             .toLongOrNull()
-            ?: throw IllegalStateException("Invalid Content-Length header")
+            ?: throw AdapterException("Invalid Content-Length header")
 
-        require(contentLength >= 0) { "Content-Length must be >= 0" }
+        if (contentLength < 0) {
+            throw AdapterException("Content-Length must be >= 0")
+        }
 
         val supportsRangeReads = response.headers()
             .allValues("Accept-Ranges")
@@ -62,16 +64,16 @@ class HttpChunkGateway(
             .build()
 
         val response = execute(request, HttpResponse.BodyHandlers.ofByteArray())
-        require(response.statusCode() == 206) {
-            "Range request failed with status ${response.statusCode()} for $rangeHeader"
+        if (response.statusCode() != 206) {
+            throw AdapterException("Range request failed with status ${response.statusCode()} for $rangeHeader")
         }
 
         validateContentRange(response, range)
 
         val bytes = response.body()
         val expectedSize = range.end - range.start + 1
-        require(bytes.size.toLong() == expectedSize) {
-            "Expected $expectedSize bytes for $rangeHeader, got ${bytes.size}"
+        if (bytes.size.toLong() != expectedSize) {
+            throw AdapterException("Expected $expectedSize bytes for $rangeHeader, got ${bytes.size}")
         }
 
         return bytes
@@ -81,7 +83,7 @@ class HttpChunkGateway(
         return try {
             URI(url)
         } catch (exception: Exception) {
-            throw IllegalArgumentException("Invalid URL: $url", exception)
+            throw AdapterException("Invalid URL: $url", exception)
         }
     }
 
@@ -89,22 +91,24 @@ class HttpChunkGateway(
         return try {
             client.send(request, bodyHandler)
         } catch (exception: Exception) {
-            throw RuntimeException("HTTP request failed: ${request.uri()}", exception)
+            throw AdapterException("HTTP request failed: ${request.uri()}", exception)
         }
     }
 
     private fun validateContentRange(response: HttpResponse<*>, requestedRange: ByteRange) {
         val contentRange = response.headers().firstValue("Content-Range")
-            .orElseThrow { IllegalStateException("Missing Content-Range header for partial response") }
+            .orElseThrow { AdapterException("Missing Content-Range header for partial response") }
 
         val parsed = CONTENT_RANGE_PATTERN.matchEntire(contentRange)
-            ?: throw IllegalStateException("Invalid Content-Range header: $contentRange")
+            ?: throw AdapterException("Invalid Content-Range header: $contentRange")
 
         val start = parsed.groupValues[1].toLong()
         val end = parsed.groupValues[2].toLong()
 
-        require(start == requestedRange.start && end == requestedRange.end) {
-            "Content-Range mismatch. Requested ${requestedRange.start}-${requestedRange.end}, got $start-$end"
+        if (start != requestedRange.start || end != requestedRange.end) {
+            throw AdapterException(
+                "Content-Range mismatch. Requested ${requestedRange.start}-${requestedRange.end}, got $start-$end"
+            )
         }
     }
 

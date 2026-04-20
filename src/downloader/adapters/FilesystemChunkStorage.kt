@@ -8,17 +8,21 @@ import java.nio.file.StandardOpenOption
 import java.util.Comparator
 
 class FilesystemChunkStorage(
-    private val tempDirectory: Path = Files.createTempDirectory("downloader-chunks-")
+    private val tempDirectory: Path = createTempDirectory()
 ) : ChunkStorage {
 
     private val lock = Any()
     private val savedChunkIndices = mutableSetOf<Int>()
 
     override fun save(chunkIndex: Int, bytes: ByteArray) {
-        require(chunkIndex >= 0) { "chunkIndex must be >= 0" }
+        if (chunkIndex < 0) {
+            throw AdapterException("chunkIndex must be >= 0")
+        }
 
         synchronized(lock) {
-            check(savedChunkIndices.add(chunkIndex)) { "chunk $chunkIndex already saved" }
+            if (!savedChunkIndices.add(chunkIndex)) {
+                throw AdapterException("chunk $chunkIndex already saved")
+            }
 
             Files.createDirectories(tempDirectory)
             val tempFile = Files.createTempFile(tempDirectory, "chunk-$chunkIndex-", ".tmp")
@@ -29,7 +33,7 @@ class FilesystemChunkStorage(
                 moveReplacing(tempFile, destination)
             } catch (exception: Exception) {
                 savedChunkIndices.remove(chunkIndex)
-                throw exception
+                throw AdapterException("Failed to save chunk $chunkIndex", exception)
             } finally {
                 Files.deleteIfExists(tempFile)
             }
@@ -39,39 +43,49 @@ class FilesystemChunkStorage(
     override fun assemble(targetPath: String) {
         val target = Path.of(targetPath)
 
-        synchronized(lock) {
-            val orderedIndices = savedChunkIndices.sorted()
-            validateContiguousIndices(orderedIndices)
+        try {
+            synchronized(lock) {
+                val orderedIndices = savedChunkIndices.sorted()
+                validateContiguousIndices(orderedIndices)
 
-            target.parent?.let { Files.createDirectories(it) }
+                target.parent?.let { Files.createDirectories(it) }
 
-            Files.newOutputStream(
-                target,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE,
-            ).use { output ->
-                for (index in orderedIndices) {
-                    val part = chunkPath(index)
-                    check(Files.exists(part)) { "missing chunk file for index $index" }
-                    Files.newInputStream(part).use { input ->
-                        input.copyTo(output)
+                Files.newOutputStream(
+                    target,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE,
+                ).use { output ->
+                    for (index in orderedIndices) {
+                        val part = chunkPath(index)
+                        if (!Files.exists(part)) {
+                            throw AdapterException("missing chunk file for index $index")
+                        }
+                        Files.newInputStream(part).use { input ->
+                            input.copyTo(output)
+                        }
                     }
                 }
             }
+        } catch (exception: Exception) {
+            throw AdapterException("Failed to assemble chunks into $targetPath", exception)
         }
     }
 
     override fun cleanup() {
-        synchronized(lock) {
-            if (Files.exists(tempDirectory)) {
-                Files.walk(tempDirectory).use { paths ->
-                    paths.sorted(Comparator.reverseOrder()).forEach { path ->
-                        Files.deleteIfExists(path)
+        try {
+            synchronized(lock) {
+                if (Files.exists(tempDirectory)) {
+                    Files.walk(tempDirectory).use { paths ->
+                        paths.sorted(Comparator.reverseOrder()).forEach { path ->
+                            Files.deleteIfExists(path)
+                        }
                     }
                 }
+                savedChunkIndices.clear()
             }
-            savedChunkIndices.clear()
+        } catch (exception: Exception) {
+            throw AdapterException("Failed to cleanup chunk storage", exception)
         }
     }
 
@@ -95,9 +109,23 @@ class FilesystemChunkStorage(
             return
         }
 
-        require(indices.first() == 0) { "chunk indices must start with 0" }
+        if (indices.first() != 0) {
+            throw AdapterException("chunk indices must start with 0")
+        }
         for (i in 1 until indices.size) {
-            require(indices[i] == indices[i - 1] + 1) { "chunk indices must be contiguous" }
+            if (indices[i] != indices[i - 1] + 1) {
+                throw AdapterException("chunk indices must be contiguous")
+            }
+        }
+    }
+
+    private companion object {
+        fun createTempDirectory(): Path {
+            return try {
+                Files.createTempDirectory("downloader-chunks-")
+            } catch (exception: Exception) {
+                throw AdapterException("Failed to create temp directory for chunks", exception)
+            }
         }
     }
 }
