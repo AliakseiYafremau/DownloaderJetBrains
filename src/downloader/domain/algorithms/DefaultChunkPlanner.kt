@@ -10,6 +10,10 @@ import downloader.domain.ResourceMetadata
 class DefaultChunkPlanner : ChunkPlanner {
 
     override fun plan(metadata: ResourceMetadata, config: DownloadConfig): DownloadPlan {
+        if (metadata.contentLength == 0L) {
+            return DownloadPlan(metadata, emptyList())
+        }
+
         if (!metadata.supportsRangeReads || metadata.contentLength <= config.minChunkSize) {
             return DownloadPlan(
                 metadata,

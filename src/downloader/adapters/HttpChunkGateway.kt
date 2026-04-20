@@ -64,11 +64,20 @@ class HttpChunkGateway(
             .build()
 
         val response = execute(request, HttpResponse.BodyHandlers.ofByteArray())
-        if (response.statusCode() != 206) {
-            throw AdapterException("Range request failed with status ${response.statusCode()} for $rangeHeader")
-        }
+        when (response.statusCode()) {
+            206 -> validateContentRange(response, range)
+            200 -> {
+                if (range.start != 0L) {
+                    throw AdapterException(
+                        "Server ignored Range and returned 200 for non-full request $rangeHeader"
+                    )
+                }
+            }
 
-        validateContentRange(response, range)
+            else -> {
+                throw AdapterException("Range request failed with status ${response.statusCode()} for $rangeHeader")
+            }
+        }
 
         val bytes = response.body()
         val expectedSize = range.end - range.start + 1
