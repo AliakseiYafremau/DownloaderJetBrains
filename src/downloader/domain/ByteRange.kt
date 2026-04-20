@@ -5,9 +5,11 @@ data class ByteRange(
     val end: Long,
 ) {
     init {
-        require(start >= 0) { "startInclusive must be >= 0" }
-        require(end >= start) { "endInclusive must be >= startInclusive" }
+        if (start < 0) {
+            throw InvalidDataException("startInclusive must be >= 0")
+        }
+        if (end < start) {
+            throw InvalidDataException("endInclusive must be >= startInclusive")
+        }
     }
 }
-
-
