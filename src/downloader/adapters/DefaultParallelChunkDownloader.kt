@@ -4,6 +4,7 @@ import downloader.application.interfaces.ChunkGateway
 import downloader.application.interfaces.ChunkStorage
 import downloader.application.interfaces.ParallelChunkDownloader
 import downloader.domain.DownloadPlan
+import java.util.concurrent.Callable
 import java.util.concurrent.CompletionService
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
@@ -30,10 +31,11 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
             val submittedTasks = plan.chunks.size
 
             for (chunk in plan.chunks) {
-                completionService.submit<Unit> {
+                completionService.submit(Callable {
                     val bytes = chunkGateway.downloadRange(url, chunk.range)
                     chunkStorage.save(chunk.index, bytes)
-                }
+                    Unit
+                })
             }
 
             repeat(submittedTasks) {

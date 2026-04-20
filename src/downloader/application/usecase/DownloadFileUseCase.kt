@@ -19,13 +19,10 @@ class DownloadFileUseCase(
         config: DownloadConfig,
     ) {
         try {
-            // Step 1: Fetch metadata
             val metadata = chunkGateway.fetchMetadata(url)
 
-            // Step 2: Plan chunks
             val plan = chunkPlanner.plan(metadata, config)
 
-            // Step 3: Download chunks in parallel
             parallelChunkDownloader.downloadChunks(
                 url = url,
                 plan = plan,
@@ -34,7 +31,6 @@ class DownloadFileUseCase(
                 chunkStorage = chunkStorage
             )
 
-            // Step 4: Assemble file
             chunkStorage.assemble(targetPath)
         } finally {
             chunkStorage.cleanup()
