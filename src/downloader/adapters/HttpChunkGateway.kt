@@ -20,8 +20,10 @@ class HttpChunkGateway(
         .build()
 
     override fun fetchMetadata(url: String): ResourceMetadata {
+        val uri = parseUri(url)
+
         val request = HttpRequest.newBuilder()
-            .uri(parseUri(url))
+            .uri(uri)
             .timeout(requestTimeout)
             .method("HEAD", HttpRequest.BodyPublishers.noBody())
             .build()
@@ -51,10 +53,11 @@ class HttpChunkGateway(
     }
 
     override fun downloadRange(url: String, range: ByteRange): ByteArray {
+        val uri = parseUri(url)
         val rangeHeader = "bytes=${range.start}-${range.end}"
 
         val request = HttpRequest.newBuilder()
-            .uri(parseUri(url))
+            .uri(uri)
             .timeout(requestTimeout)
             .header("Range", rangeHeader)
             .GET()
@@ -86,8 +89,27 @@ class HttpChunkGateway(
     }
 
     private fun parseUri(url: String): URI {
+        if (url.isBlank()) {
+            throw AdapterException("URL must not be blank")
+        }
+
         return try {
-            URI(url)
+            val uri = URI(url)
+            val scheme = uri.scheme?.lowercase()
+
+            if (!uri.isAbsolute) {
+                throw AdapterException("URL must be absolute")
+            }
+            if (scheme != "http" && scheme != "https") {
+                throw AdapterException("URL scheme must be http or https")
+            }
+            if (uri.host.isNullOrBlank()) {
+                throw AdapterException("URL host must not be blank")
+            }
+
+            uri
+        } catch (exception: AdapterException) {
+            throw exception
         } catch (exception: Exception) {
             throw AdapterException("Invalid URL: $url", exception)
         }

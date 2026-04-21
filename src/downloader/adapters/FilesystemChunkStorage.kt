@@ -2,6 +2,7 @@ package downloader.adapters
 
 import downloader.application.interfaces.ChunkStorage
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
@@ -41,7 +42,7 @@ class FilesystemChunkStorage(
     }
 
     override fun assemble(targetPath: String) {
-        val target = Path.of(targetPath)
+        val target = validateTargetPath(targetPath)
 
         try {
             synchronized(lock) {
@@ -117,6 +118,29 @@ class FilesystemChunkStorage(
                 throw AdapterException("chunk indices must be contiguous")
             }
         }
+    }
+
+    private fun validateTargetPath(targetPath: String): Path {
+        if (targetPath.isBlank()) {
+            throw AdapterException("targetPath must not be blank")
+        }
+
+        val path = try {
+            Path.of(targetPath)
+        } catch (exception: InvalidPathException) {
+            throw AdapterException("Invalid targetPath: $targetPath", exception)
+        }
+
+        if (Files.exists(path)) {
+            if (Files.isDirectory(path)) {
+                throw AdapterException("targetPath points to a directory: $targetPath")
+            }
+            if (!Files.isRegularFile(path)) {
+                throw AdapterException("targetPath must point to a regular file: $targetPath")
+            }
+        }
+
+        return path
     }
 
     private companion object {
