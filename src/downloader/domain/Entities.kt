@@ -40,19 +40,21 @@ data class ResourceMetadata(
 }
 
 data class DownloadConfig(
-    val minChunkSize: Long,
-    val maxChunkSize: Long,
-    val maxParallelDownloads: Int,
+    val minChunkSize: Long = 1,
+    val maxChunkSize: Long? = null,
+    val maxParallelDownloads: Int = 4,
 ) {
     init {
         if (minChunkSize <= 0) {
             throw InvalidDataException("minChunkSize must be > 0")
         }
-        if (maxChunkSize <= 0) {
-            throw InvalidDataException("maxChunkSize must be > 0")
-        }
-        if (minChunkSize > maxChunkSize) {
-            throw InvalidDataException("minChunkSize must be <= maxChunkSize")
+        if (maxChunkSize != null) {
+            if (maxChunkSize <= 0) {
+                throw InvalidDataException("maxChunkSize must be > 0")
+            }
+            if (minChunkSize > maxChunkSize) {
+                throw InvalidDataException("minChunkSize must be lower maxChunkSize")
+            }
         }
         if (maxParallelDownloads <= 0) {
             throw InvalidDataException("maxParallelDownloads must be > 0")

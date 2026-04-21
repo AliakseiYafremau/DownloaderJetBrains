@@ -47,6 +47,7 @@ class DefaultChunkPlanner : ChunkPlanner {
             config.minChunkSize,
             kotlin.math.ceil(fileSize.toDouble() / config.maxParallelDownloads).toLong()
         )
-        return minOf(preferred, config.maxChunkSize)
+
+        return if (config.maxChunkSize == null) preferred else minOf(preferred, config.maxChunkSize)
     }
 }
