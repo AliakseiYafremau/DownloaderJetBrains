@@ -14,6 +14,9 @@ data class ByteRange(
     }
 }
 
+/**
+ * Chunk is one fragment of the resource to be downloaded.
+ */
 data class Chunk(
     val index: Int,
     val range: ByteRange,
@@ -57,6 +60,9 @@ data class DownloadConfig(
     }
 }
 
+/**
+ * A plan has an ordered list of chunks that must be downloaded.
+ */
 data class DownloadPlan(
     val fileMetadata: ResourceMetadata,
     val chunks: List<Chunk>,
