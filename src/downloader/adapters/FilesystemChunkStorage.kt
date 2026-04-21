@@ -11,8 +11,8 @@ import java.util.Comparator
 /**
  * File-system based [ChunkStorage] implementation.
  *
- * Stores chunks as temporary files by index and assembles them into a target file
- * in ascending chunk-index order.
+ * Persists chunk bytes to a single temporary file in ascending chunk-index order,
+ * buffering only out-of-order chunks in memory until missing earlier chunks arrive.
  */
 class FilesystemChunkStorage(
     private val tempDirectory: Path = createTempDirectory()
@@ -20,6 +20,9 @@ class FilesystemChunkStorage(
 
     private val lock = Any()
     private val savedChunkIndices = mutableSetOf<Int>()
+    private val pendingChunks = mutableMapOf<Int, ByteArray>()
+    private var nextChunkIndexToPersist = 0
+    private val assembledTempFile: Path = tempDirectory.resolve("assembled.tmp")
 
     /**
      * Persists chunk bytes under the given index.
@@ -36,18 +39,12 @@ class FilesystemChunkStorage(
                 throw AdapterException("chunk $chunkIndex already saved")
             }
 
-            Files.createDirectories(tempDirectory)
-            val tempFile = Files.createTempFile(tempDirectory, "chunk-$chunkIndex-", ".tmp")
-            val destination = chunkPath(chunkIndex)
-
             try {
-                Files.write(tempFile, bytes)
-                Files.move(tempFile, destination, StandardCopyOption.REPLACE_EXISTING)
+                pendingChunks[chunkIndex] = bytes
+                flushContiguousPendingChunks()
             } catch (exception: Exception) {
-                savedChunkIndices.remove(chunkIndex)
-                throw AdapterException("Failed to save chunk $chunkIndex", exception)
-            } finally {
-                Files.deleteIfExists(tempFile)
+                val detail = exception.message ?: exception::class.simpleName ?: "unknown cause"
+                throw AdapterException("Failed to save chunk $chunkIndex: $detail", exception)
             }
         }
     }
@@ -64,24 +61,32 @@ class FilesystemChunkStorage(
             synchronized(lock) {
                 val orderedIndices = savedChunkIndices.sorted()
                 validateContiguousIndices(orderedIndices)
+                flushContiguousPendingChunks()
+                if (pendingChunks.isNotEmpty()) {
+                    throw AdapterException("chunk data is missing for one or more indices")
+                }
 
                 target.parent?.let { Files.createDirectories(it) }
 
-                Files.newOutputStream(
-                    target,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE,
-                ).use { output ->
-                    for (index in orderedIndices) {
-                        val part = chunkPath(index)
-                        if (!Files.exists(part)) {
-                            throw AdapterException("missing chunk file for index $index")
-                        }
-                        Files.newInputStream(part).use { input ->
-                            input.copyTo(output)
-                        }
-                    }
+                if (orderedIndices.isEmpty()) {
+                    Files.newOutputStream(
+                        target,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.WRITE,
+                    ).use { }
+                    return
+                }
+
+                if (!Files.exists(assembledTempFile)) {
+                    throw AdapterException("missing assembled chunk file")
+                }
+
+                try {
+                    Files.move(assembledTempFile, target, StandardCopyOption.REPLACE_EXISTING)
+                } catch (_: Exception) {
+                    Files.copy(assembledTempFile, target, StandardCopyOption.REPLACE_EXISTING)
+                    Files.deleteIfExists(assembledTempFile)
                 }
             }
         } catch (exception: Exception) {
@@ -103,13 +108,33 @@ class FilesystemChunkStorage(
                     }
                 }
                 savedChunkIndices.clear()
+                pendingChunks.clear()
+                nextChunkIndexToPersist = 0
             }
         } catch (exception: Exception) {
             throw AdapterException("Failed to cleanup chunk storage", exception)
         }
     }
 
-    private fun chunkPath(chunkIndex: Int): Path = tempDirectory.resolve("chunk-$chunkIndex.part")
+    private fun flushContiguousPendingChunks() {
+        Files.createDirectories(tempDirectory)
+        while (true) {
+            val chunkBytes = pendingChunks.remove(nextChunkIndexToPersist) ?: break
+            appendChunk(chunkBytes)
+            nextChunkIndexToPersist++
+        }
+    }
+
+    private fun appendChunk(bytes: ByteArray) {
+        Files.newOutputStream(
+            assembledTempFile,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.WRITE,
+            StandardOpenOption.APPEND,
+        ).use { output ->
+            output.write(bytes)
+        }
+    }
 
     /**
      * Validates that chunk indices form a contiguous sequence starting from 0.
@@ -159,7 +184,7 @@ class FilesystemChunkStorage(
 
     private companion object {
         /**
-         * Creates a dedicated temporary directory for chunk files.
+         * Creates a dedicated temporary directory for chunk assembly.
          */
         fun createTempDirectory(): Path {
             return try {

@@ -67,6 +67,29 @@ Example with explicit chunk and parallelism settings:
 
 ## How to Run Tests
 
+Run unit tests only:
+
+```bash
+./gradlew unit
+```
+
+Run E2E tests only:
+
+```bash
+./gradlew e2e
+```
+
+Run all tests (unit + e2e):
+
 ```bash
 ./gradlew test
+```
+
+The E2E test starts a local in-process HTTP server with `HEAD` and `Range` support, creates a source file in a
+temporary directory and runs the downloader as a separate CLI process.
+
+Configure E2E generated file size (in MB):
+
+```bash
+./gradlew e2e -PsizeMb=120
 ```

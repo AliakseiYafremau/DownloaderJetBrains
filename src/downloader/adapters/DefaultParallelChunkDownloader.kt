@@ -82,10 +82,14 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
                 if (cause is Error) {
                     throw cause
                 }
-                AdapterException("Parallel chunk download failed", cause)
+                val detail = cause.message ?: cause::class.simpleName ?: "unknown cause"
+                AdapterException("Parallel chunk download failed: $detail", cause)
             }
 
-            else -> AdapterException("Parallel chunk download failed", exception)
+            else -> {
+                val detail = exception.message ?: exception::class.simpleName ?: "unknown cause"
+                AdapterException("Parallel chunk download failed: $detail", exception)
+            }
         }
     }
 }
