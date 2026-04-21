@@ -8,6 +8,12 @@ import downloader.application.interfaces.ParallelChunkDownloader
 
 import downloader.domain.algorithms.Timer
 
+/**
+ * Orchestrates the end-to-end file download flow.
+ *
+ * Fetches metadata, builds a chunk plan, downloads chunks in parallel using the plan, assembles the
+ * resulting file, and guarantees temporary storage cleanup.
+ */
 class DownloadFileUseCase(
     val resourceGateway: ResourceGateway,
     val chunkPlanner: ChunkPlanner,
@@ -16,6 +22,11 @@ class DownloadFileUseCase(
     val timer: Timer
 ) {
 
+    /**
+     * Executes the download flow for [url] into [targetPath] using [config].
+     *
+     * @return elapsed execution time in milliseconds.
+     */
     fun execute(
         url: String,
         targetPath: String,

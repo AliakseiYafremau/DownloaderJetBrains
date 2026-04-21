@@ -10,8 +10,20 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
 
+/**
+ * Default [ParallelChunkDownloader] implementation backed by a fixed thread pool.
+ *
+ * Submits one task per chunk, waits for all tasks to complete, and fails fast if any
+ * task ends with an exception.
+ */
 class DefaultParallelChunkDownloader : ParallelChunkDownloader {
 
+    /**
+     * Downloads all chunks from [plan] in parallel using at most [maxParallel] worker threads.
+     *
+     * On the first task failure, wraps and rethrows the cause as [AdapterException]
+     * (except JVM [Error], which is rethrown as-is).
+     */
     override fun downloadChunks(
         url: String,
         plan: DownloadPlan,
@@ -53,6 +65,11 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
         }
     }
 
+    /**
+     * Normalizes execution failures from worker tasks into adapter-specific runtime exception.
+     *
+     * Preserves interrupt status on [InterruptedException] and rethrows JVM [Error] causes.
+     */
     private fun unwrapExecutionException(exception: Exception): RuntimeException {
         return when (exception) {
             is InterruptedException -> {
@@ -72,4 +89,3 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
         }
     }
 }
-

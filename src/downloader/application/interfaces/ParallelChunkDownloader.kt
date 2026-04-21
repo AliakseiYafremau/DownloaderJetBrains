@@ -4,19 +4,6 @@ import downloader.domain.DownloadPlan
 
 /**
  * Responsible for downloading chunks in parallel.
- *
- * Does NOT:
- * - plan chunks
- * - assemble files
- *
- * Does:
- * - execute download tasks in parallel
- * - coordinate with ResourceGateway to fetch data
- * - coordinate with ChunkStorage to save data
- *
- * Implementation requires:
- * - ResourceGateway: to fetch chunk data
- * - ChunkStorage: to persist chunk data
  */
 interface ParallelChunkDownloader {
     /**

@@ -8,6 +8,12 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.util.Comparator
 
+/**
+ * File-system based [ChunkStorage] implementation.
+ *
+ * Stores chunks as temporary files by index and assembles them into a target file
+ * in ascending chunk-index order.
+ */
 class FilesystemChunkStorage(
     private val tempDirectory: Path = createTempDirectory()
 ) : ChunkStorage {
@@ -15,6 +21,11 @@ class FilesystemChunkStorage(
     private val lock = Any()
     private val savedChunkIndices = mutableSetOf<Int>()
 
+    /**
+     * Persists chunk bytes under the given index.
+     *
+     * Fails on duplicate indices to prevent accidental overwrites from concurrent downloads.
+     */
     override fun save(chunkIndex: Int, bytes: ByteArray) {
         if (chunkIndex < 0) {
             throw AdapterException("chunkIndex must be >= 0")
@@ -31,7 +42,7 @@ class FilesystemChunkStorage(
 
             try {
                 Files.write(tempFile, bytes)
-                moveReplacing(tempFile, destination)
+                Files.move(tempFile, destination, StandardCopyOption.REPLACE_EXISTING)
             } catch (exception: Exception) {
                 savedChunkIndices.remove(chunkIndex)
                 throw AdapterException("Failed to save chunk $chunkIndex", exception)
@@ -41,6 +52,11 @@ class FilesystemChunkStorage(
         }
     }
 
+    /**
+     * Builds the final file at [targetPath] by concatenating stored chunks in index order.
+     *
+     * Requires chunk indices to start at 0 and be contiguous.
+     */
     override fun assemble(targetPath: String) {
         val target = validateTargetPath(targetPath)
 
@@ -73,6 +89,9 @@ class FilesystemChunkStorage(
         }
     }
 
+    /**
+     * Deletes all temporary chunk files and resets in-memory chunk tracking.
+     */
     override fun cleanup() {
         try {
             synchronized(lock) {
@@ -92,19 +111,9 @@ class FilesystemChunkStorage(
 
     private fun chunkPath(chunkIndex: Int): Path = tempDirectory.resolve("chunk-$chunkIndex.part")
 
-    private fun moveReplacing(from: Path, to: Path) {
-        try {
-            Files.move(
-                from,
-                to,
-                StandardCopyOption.REPLACE_EXISTING,
-                StandardCopyOption.ATOMIC_MOVE,
-            )
-        } catch (_: Exception) {
-            Files.move(from, to, StandardCopyOption.REPLACE_EXISTING)
-        }
-    }
-
+    /**
+     * Validates that chunk indices form a contiguous sequence starting from 0.
+     */
     private fun validateContiguousIndices(indices: List<Int>) {
         if (indices.isEmpty()) {
             return
@@ -120,6 +129,11 @@ class FilesystemChunkStorage(
         }
     }
 
+    /**
+     * Validates and parses the target path where the final file will be assembled.
+     *
+     * Rejects blank paths, invalid paths, directories, and non-regular existing files.
+     */
     private fun validateTargetPath(targetPath: String): Path {
         if (targetPath.isBlank()) {
             throw AdapterException("targetPath must not be blank")
@@ -144,6 +158,9 @@ class FilesystemChunkStorage(
     }
 
     private companion object {
+        /**
+         * Creates a dedicated temporary directory for chunk files.
+         */
         fun createTempDirectory(): Path {
             return try {
                 Files.createTempDirectory("downloader-chunks-")
@@ -153,4 +170,3 @@ class FilesystemChunkStorage(
         }
     }
 }
-
