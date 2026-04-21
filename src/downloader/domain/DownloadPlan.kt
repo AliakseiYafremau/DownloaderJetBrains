@@ -5,9 +5,6 @@ data class DownloadPlan(
     val chunks: List<Chunk>,
 ) {
     init {
-        if (fileMetadata.contentLength < 0) {
-            throw InvalidDataException("contentLength must be >= 0")
-        }
 
         if (chunks.isEmpty()) {
             if (fileMetadata.contentLength != 0L) {

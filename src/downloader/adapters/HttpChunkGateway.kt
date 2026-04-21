@@ -37,9 +37,6 @@ class HttpChunkGateway(
             .toLongOrNull()
             ?: throw AdapterException("Invalid Content-Length header")
 
-        if (contentLength < 0) {
-            throw AdapterException("Content-Length must be >= 0")
-        }
 
         val supportsRangeReads = response.headers()
             .allValues("Accept-Ranges")
