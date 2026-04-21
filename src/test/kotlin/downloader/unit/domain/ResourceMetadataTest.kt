@@ -1,5 +1,7 @@
-package downloader.domain
+package downloader.unit.domain
 
+import downloader.domain.InvalidDataException
+import downloader.domain.ResourceMetadata
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

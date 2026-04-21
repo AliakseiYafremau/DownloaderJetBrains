@@ -1,5 +1,10 @@
-package downloader.domain
+package downloader.unit.domain
 
+import downloader.domain.ByteRange
+import downloader.domain.Chunk
+import downloader.domain.DownloadPlan
+import downloader.domain.InvalidDataException
+import downloader.domain.ResourceMetadata
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

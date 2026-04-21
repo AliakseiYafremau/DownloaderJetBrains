@@ -1,6 +1,7 @@
-package downloader.domain.algorithms
+package downloader.unit.algorithms
 
 import downloader.domain.*
+import downloader.domain.algorithms.DefaultChunkPlanner
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

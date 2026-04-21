@@ -1,5 +1,7 @@
-package downloader.domain
+package downloader.unit.domain
 
+import downloader.domain.ByteRange
+import downloader.domain.InvalidDataException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
