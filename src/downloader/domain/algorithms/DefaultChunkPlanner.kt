@@ -14,7 +14,9 @@ class DefaultChunkPlanner : ChunkPlanner {
             return DownloadPlan(metadata, emptyList())
         }
 
-        if (!metadata.supportsRangeReads || metadata.contentLength <= config.minChunkSize) {
+        // Use just one chunk if the server doesn't support range reads
+        // or if the file is smaller than the minimum chunk size.
+        if (!metadata.supportsRangeReads || (metadata.contentLength <= config.minChunkSize)) {
             return DownloadPlan(
                 metadata,
                 listOf(Chunk(0, ByteRange(0, metadata.contentLength - 1)))
@@ -23,19 +25,23 @@ class DefaultChunkPlanner : ChunkPlanner {
 
         val chunkSize = chooseChunkSize(metadata.contentLength, config)
 
-        val chunks = mutableListOf<Chunk>()
-        var start = 0L
-        var index = 0
+        val chunks = buildList {
+            var start = 0L
+            var index = 0
 
-        while (start < metadata.contentLength) {
-            val end = minOf(start + chunkSize - 1, metadata.contentLength - 1)
-            chunks += Chunk(index++, ByteRange(start, end))
-            start = end + 1
+            while (start < metadata.contentLength) {
+                val end = minOf(start + chunkSize - 1, metadata.contentLength - 1)
+                add(Chunk(index++, ByteRange(start, end)))
+                start = end + 1
+            }
         }
 
         return DownloadPlan(metadata, chunks)
     }
 
+    /**
+     * Calculates the preferred chunk size within the configured minimum and maximum bounds.
+     */
     private fun chooseChunkSize(fileSize: Long, config: DownloadConfig): Long {
         val preferred = maxOf(
             config.minChunkSize,
