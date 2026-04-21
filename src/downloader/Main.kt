@@ -7,6 +7,7 @@ import downloader.application.usecase.DownloadFileUseCase
 import downloader.cli.CliArgsParser
 import downloader.domain.AppException
 import downloader.domain.algorithms.DefaultChunkPlanner
+import downloader.domain.algorithms.Timer
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -24,16 +25,19 @@ fun main(args: Array<String>) {
         chunkPlanner = DefaultChunkPlanner(),
         chunkStorage = FilesystemChunkStorage(),
         parallelChunkDownloader = DefaultParallelChunkDownloader(),
+        timer = Timer(),
     )
 
     try {
-        useCase.execute(
+        val elapsedMillis = useCase.execute(
             url = cliArgs.url,
             targetPath = cliArgs.targetPath,
             config = cliArgs.config,
         )
+        val elapsedSeconds = elapsedMillis / 1000.0
 
         println("Downloaded successfully to: ${cliArgs.targetPath}")
+        println("Time spent: %.3f s".format(elapsedSeconds))
     } catch (exception: AppException) {
         System.err.println("Download failed: ${exception.message}")
         exitProcess(1)
@@ -42,5 +46,4 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
 }
-
 

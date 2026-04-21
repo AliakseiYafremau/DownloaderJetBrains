@@ -10,6 +10,7 @@ import downloader.domain.ChunkPlanner
 import downloader.domain.DownloadConfig
 import downloader.domain.DownloadPlan
 import downloader.domain.ResourceMetadata
+import downloader.domain.algorithms.Timer
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
@@ -38,7 +39,7 @@ class DownloadFileUseCaseTest {
         doReturn(metadata).whenever(resourceGateway).fetchMetadata(url)
         doReturn(plan).whenever(chunkPlanner).plan(metadata, config)
 
-        val useCase = DownloadFileUseCase(resourceGateway, chunkPlanner, chunkStorage, parallelChunkDownloader)
+        val useCase = DownloadFileUseCase(resourceGateway, chunkPlanner, chunkStorage, parallelChunkDownloader, Timer())
 
         // Act
         useCase.execute(url, targetPath, config)
@@ -62,7 +63,7 @@ class DownloadFileUseCaseTest {
 
         doThrow(RuntimeException("fail fetch")).whenever(resourceGateway).fetchMetadata(url)
 
-        val useCase = DownloadFileUseCase(resourceGateway, chunkPlanner, chunkStorage, parallelChunkDownloader)
+        val useCase = DownloadFileUseCase(resourceGateway, chunkPlanner, chunkStorage, parallelChunkDownloader, Timer())
 
         // Act and Assert
         try {

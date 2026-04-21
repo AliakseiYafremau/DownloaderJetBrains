@@ -2,9 +2,9 @@
 
 ## TODO
 
-- [ ] Add timer of download
+- [x] Add timer of download
 - [x] Make DownloadConfig optional
-- [ ] Add tests
-  - [ ] Add tests for all key Entities
-  - [ ] Add tests for ChunkPlanner
-  - [ ] Add tests for Download Use Case
+- [x] Add tests
+  - [x] Add tests for all key Entities
+  - [x] Add tests for ChunkPlanner
+  - [x] Add tests for Download Use Case

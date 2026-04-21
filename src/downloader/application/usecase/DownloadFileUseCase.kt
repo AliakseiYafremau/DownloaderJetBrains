@@ -6,18 +6,22 @@ import downloader.application.interfaces.ChunkStorage
 import downloader.domain.DownloadConfig
 import downloader.application.interfaces.ParallelChunkDownloader
 
+import downloader.domain.algorithms.Timer
+
 class DownloadFileUseCase(
     val resourceGateway: ResourceGateway,
     val chunkPlanner: ChunkPlanner,
     val chunkStorage: ChunkStorage,
-    val parallelChunkDownloader: ParallelChunkDownloader
+    val parallelChunkDownloader: ParallelChunkDownloader,
+    val timer: Timer
 ) {
 
     fun execute(
         url: String,
         targetPath: String,
         config: DownloadConfig,
-    ) {
+    ): Long {
+        timer.start()
         try {
             val metadata = resourceGateway.fetchMetadata(url)
 
@@ -32,6 +36,7 @@ class DownloadFileUseCase(
             )
 
             chunkStorage.assemble(targetPath)
+            return timer.elapsedMillis()
         } finally {
             chunkStorage.cleanup()
         }
