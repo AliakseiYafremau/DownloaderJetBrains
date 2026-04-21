@@ -11,11 +11,11 @@ import downloader.domain.DownloadPlan
  *
  * Does:
  * - execute download tasks in parallel
- * - coordinate with ChunkGateway to fetch data
+ * - coordinate with ResourceGateway to fetch data
  * - coordinate with ChunkStorage to save data
  *
  * Implementation requires:
- * - ChunkGateway: to fetch chunk data
+ * - ResourceGateway: to fetch chunk data
  * - ChunkStorage: to persist chunk data
  */
 interface ParallelChunkDownloader {
