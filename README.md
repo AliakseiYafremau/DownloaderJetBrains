@@ -36,9 +36,13 @@ Arguments format:
 downloader.MainKt <url> <targetPath> [minChunkSize] [maxChunkSize] [maxParallelDownloads]
 ```
 
-`targetPath` can be either:
-- a full output file path (for example `/tmp/file.bin`)
-- an existing directory path (or a path ending with `/`), in which case the filename is derived from the URL
+| Argument | Description | Default Value |
+| --- | --- | --- |
+| `url` | The URL of the file to download | N/A (required) |
+| `targetPath` | The output file path or directory path where the downloaded file will be saved | N/A (required) |
+| `minChunkSize` | The minimum chunk size in bytes | 1 MB (1048576 bytes) |
+| `maxChunkSize` | The maximum chunk size in bytes | 8 MB (8388608 bytes) |
+| `maxParallelDownloads` | The maximum number of parallel downloads | 4 |
 
 ### Example with default chunk and parallelism settings:
 ```bash
