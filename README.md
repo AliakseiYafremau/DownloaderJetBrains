@@ -1,6 +1,6 @@
 # DownloaderJetBrains
 
-## Task (verbatim)
+## Task
 
 Use either Java or Kotlin to implement a file downloader which has the ability to download chunks of a file in parallel. You should collect the parts from a web server by specifying a URL.
 You may start a web server locally using the following docker command:
