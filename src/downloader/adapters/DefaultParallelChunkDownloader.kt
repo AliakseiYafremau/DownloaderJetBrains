@@ -1,6 +1,6 @@
 package downloader.adapters
 
-import downloader.application.interfaces.ChunkGateway
+import downloader.application.interfaces.ResourceGateway
 import downloader.application.interfaces.ChunkStorage
 import downloader.application.interfaces.ParallelChunkDownloader
 import downloader.domain.DownloadPlan
@@ -16,7 +16,7 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
         url: String,
         plan: DownloadPlan,
         maxParallel: Int,
-        chunkGateway: ChunkGateway,
+        resourceGateway: ResourceGateway,
         chunkStorage: ChunkStorage,
     ) {
         if (maxParallel <= 0) {
@@ -35,7 +35,7 @@ class DefaultParallelChunkDownloader : ParallelChunkDownloader {
 
             for (chunk in plan.chunks) {
                 completionService.submit(Callable {
-                    val bytes = chunkGateway.downloadRange(url, chunk.range)
+                    val bytes = resourceGateway.downloadRange(url, chunk.range)
                     chunkStorage.save(chunk.index, bytes)
                     Unit
                 })

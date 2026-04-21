@@ -1,6 +1,6 @@
 package downloader.adapters
 
-import downloader.application.interfaces.ChunkGateway
+import downloader.application.interfaces.ResourceGateway
 import downloader.domain.ByteRange
 import downloader.domain.ResourceMetadata
 import java.net.URI
@@ -9,10 +9,10 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
-class HttpChunkGateway(
+class HttpResourceGateway(
     private val connectTimeout: Duration = Duration.ofSeconds(10),
     private val requestTimeout: Duration = Duration.ofSeconds(30),
-) : ChunkGateway {
+) : ResourceGateway {
 
     private val client: HttpClient = HttpClient.newBuilder()
         .connectTimeout(connectTimeout)

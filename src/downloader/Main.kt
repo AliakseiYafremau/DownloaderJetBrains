@@ -2,7 +2,7 @@ package downloader
 
 import downloader.adapters.DefaultParallelChunkDownloader
 import downloader.adapters.FilesystemChunkStorage
-import downloader.adapters.HttpChunkGateway
+import downloader.adapters.HttpResourceGateway
 import downloader.application.usecase.DownloadFileUseCase
 import downloader.domain.AppException
 import downloader.domain.DownloadConfig
@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
     val maxParallelDownloads = parseMaxParallelArg(args[4])
 
     val useCase = DownloadFileUseCase(
-        chunkGateway = HttpChunkGateway(),
+        resourceGateway = HttpResourceGateway(),
         chunkPlanner = DefaultChunkPlanner(),
         chunkStorage = FilesystemChunkStorage(),
         parallelChunkDownloader = DefaultParallelChunkDownloader(),

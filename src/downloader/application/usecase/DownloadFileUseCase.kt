@@ -1,13 +1,13 @@
 package downloader.application.usecase
 
-import downloader.application.interfaces.ChunkGateway
+import downloader.application.interfaces.ResourceGateway
 import downloader.domain.ChunkPlanner
 import downloader.application.interfaces.ChunkStorage
 import downloader.domain.DownloadConfig
 import downloader.application.interfaces.ParallelChunkDownloader
 
 class DownloadFileUseCase(
-    val chunkGateway: ChunkGateway,
+    val resourceGateway: ResourceGateway,
     val chunkPlanner: ChunkPlanner,
     val chunkStorage: ChunkStorage,
     val parallelChunkDownloader: ParallelChunkDownloader
@@ -19,7 +19,7 @@ class DownloadFileUseCase(
         config: DownloadConfig,
     ) {
         try {
-            val metadata = chunkGateway.fetchMetadata(url)
+            val metadata = resourceGateway.fetchMetadata(url)
 
             val plan = chunkPlanner.plan(metadata, config)
 
@@ -27,7 +27,7 @@ class DownloadFileUseCase(
                 url = url,
                 plan = plan,
                 maxParallel = config.maxParallelDownloads,
-                chunkGateway = chunkGateway,
+                resourceGateway = resourceGateway,
                 chunkStorage = chunkStorage
             )
 

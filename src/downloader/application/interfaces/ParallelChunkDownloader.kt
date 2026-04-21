@@ -26,14 +26,14 @@ interface ParallelChunkDownloader {
      * @param url resource URL to download from
      * @param plan download plan containing chunks and their ranges
      * @param maxParallel maximum number of concurrent downloads
-     * @param chunkGateway gateway used to fetch chunk bytes
+     * @param resourceGateway gateway used to fetch chunk bytes
      * @param chunkStorage storage used to persist downloaded chunks
      */
     fun downloadChunks(
         url: String,
         plan: DownloadPlan,
         maxParallel: Int,
-        chunkGateway: ChunkGateway,
+        resourceGateway: ResourceGateway,
         chunkStorage: ChunkStorage
     )
 }
