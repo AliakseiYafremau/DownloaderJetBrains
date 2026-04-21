@@ -5,6 +5,7 @@ import downloader.adapters.FilesystemChunkStorage
 import downloader.adapters.HttpResourceGateway
 import downloader.application.usecase.DownloadFileUseCase
 import downloader.cli.CliArgsParser
+import downloader.cli.TargetPathResolver
 import downloader.domain.AppException
 import downloader.domain.algorithms.DefaultChunkPlanner
 import downloader.domain.algorithms.Timer
@@ -29,14 +30,15 @@ fun main(args: Array<String>) {
     )
 
     try {
+        val resolvedTargetPath = TargetPathResolver.resolve(cliArgs.url, cliArgs.targetPath)
         val elapsedMillis = useCase.execute(
             url = cliArgs.url,
-            targetPath = cliArgs.targetPath,
+            targetPath = resolvedTargetPath,
             config = cliArgs.config,
         )
         val elapsedSeconds = elapsedMillis / 1000.0
 
-        println("Downloaded successfully to: ${cliArgs.targetPath}")
+        println("Downloaded successfully to: $resolvedTargetPath")
         println("Time spent: %.3f s".format(elapsedSeconds))
     } catch (exception: AppException) {
         System.err.println("Download failed: ${exception.message}")
@@ -46,4 +48,3 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
 }
-

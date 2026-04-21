@@ -36,6 +36,10 @@ Arguments format:
 downloader.MainKt <url> <targetPath> [minChunkSize] [maxChunkSize] [maxParallelDownloads]
 ```
 
+`targetPath` can be either:
+- a full output file path (for example `/tmp/file.bin`)
+- an existing directory path (or a path ending with `/`), in which case the filename is derived from the URL
+
 ### Example with default chunk and parallelism settings:
 ```bash
 ./gradlew run --args="http://localhost:8080/my-local-file.txt /tmp/my-local-file.txt"
